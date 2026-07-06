@@ -13,9 +13,12 @@ export interface Command {
 }
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-  ],
+  intents: [GatewayIntentBits.Guilds],
+});
+
+// 처리되지 않은 에러로 서버 크래시 방지
+client.on("error", (err) => {
+  logger.error({ err }, "Discord 클라이언트 오류");
 });
 
 const commands = new Collection<string, Command>();
@@ -38,11 +41,15 @@ client.on("interactionCreate", async (interaction) => {
     await command.execute(interaction);
   } catch (err) {
     logger.error({ err }, "커맨드 실행 오류");
-    const msg = { content: "❌ 오류가 발생했습니다.", ephemeral: true } as const;
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(msg);
-    } else {
-      await interaction.reply(msg);
+    try {
+      const msg = { content: "❌ 오류가 발생했습니다.", flags: 64 } as const;
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(msg);
+      } else {
+        await interaction.reply(msg);
+      }
+    } catch {
+      // interaction 만료 등으로 응답 불가 — 무시
     }
   }
 });

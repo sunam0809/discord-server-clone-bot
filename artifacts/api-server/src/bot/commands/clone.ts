@@ -33,24 +33,26 @@ export async function handleClone(
   const sourceId = interaction.options.getString("서버id", true).trim();
   const client = interaction.client;
 
-  // 대상 서버: 캐시에 없으면 강제 fetch
+  // 대상 서버
   let destGuild: Guild | null = interaction.guild;
   if (!destGuild && interaction.guildId) {
-    destGuild = await client.guilds.fetch({ guild: interaction.guildId, force: true }).catch((err) => {
-      logger.error({ err, guildId: interaction.guildId }, "대상 서버 fetch 실패");
-      return null;
-    });
+    destGuild = await client.guilds
+      .fetch({ guild: interaction.guildId, force: true })
+      .catch((err) => {
+        logger.error({ err, guildId: interaction.guildId }, "대상 서버 fetch 실패");
+        return null;
+      });
   }
   if (!destGuild) {
     await interaction.editReply(
       "❌ 봇이 이 서버의 멤버가 아니에요.\n" +
-      "초대 링크에 **`bot`** 스코프가 포함돼야 해요.\n" +
-      "OAuth2 → URL Generator → `bot` + `applications.commands` 둘 다 체크 후 다시 초대해주세요."
+        "초대 링크에 **`bot`** 스코프가 포함돼야 해요.\n" +
+        "OAuth2 → URL Generator → `bot` + `applications.commands` 둘 다 체크 후 다시 초대해주세요.",
     );
     return;
   }
 
-  // 1) 원본 서버 가져오기
+  // 원본 서버
   let sourceGuild: Guild;
   try {
     sourceGuild = await client.guilds.fetch({ guild: sourceId, force: true });
@@ -69,21 +71,24 @@ export async function handleClone(
     return;
   }
 
+  const currentChannelId = interaction.channelId;
+
   await interaction.editReply(
     `⏳ **${sourceGuild.name}** → **${destGuild.name}** 복제 시작...\n채널 초기화 중...`,
   );
 
-  // 2) 기존 채널 전부 삭제
+  // 기존 채널 삭제 — 커맨드를 쓴 채널은 마지막에 처리
   try {
     const existing = await destGuild.channels.fetch();
-    for (const [, ch] of existing) {
-      if (ch) await ch.delete("서버 복제 — 채널 초기화").catch(() => null);
+    for (const [id, ch] of existing) {
+      if (!ch || id === currentChannelId) continue; // 현재 채널 건너뜀
+      await ch.delete("서버 복제 — 채널 초기화").catch(() => null);
     }
   } catch (err) {
     logger.warn({ err }, "기존 채널 삭제 중 일부 실패");
   }
 
-  // 2-1) 기존 역할 전부 삭제 (@everyone, 봇 관리 역할 제외)
+  // 기존 역할 전부 삭제 (@everyone, 봇 관리 역할 제외)
   try {
     await destGuild.roles.fetch();
     const existingRoles = [...destGuild.roles.cache.values()].filter(
@@ -98,7 +103,7 @@ export async function handleClone(
 
   await interaction.editReply(`⏳ 역할 복제 중...`);
 
-  // 3) 역할 복제
+  // 역할 복제
   const roleMap = new Map<string, string>();
   roleMap.set(sourceGuild.roles.everyone.id, destGuild.roles.everyone.id);
 
@@ -127,7 +132,7 @@ export async function handleClone(
 
   await interaction.editReply(`✅ 역할 ${roleCount}개 완료.\n📁 채널 복제 중...`);
 
-  // 4) 채널 복제 — 카테고리 먼저, 그 다음 나머지
+  // 채널 복제 — 카테고리 먼저
   const channelMap = new Map<string, string>();
   const allChannels = [...sourceGuild.channels.cache.values()] as GuildChannel[];
 
@@ -198,7 +203,15 @@ export async function handleClone(
     }
   }
 
-  // 5) 서버 이름·아이콘 업데이트
+  // 복제 완료 후 남겨뒀던 현재 채널 삭제
+  try {
+    const currentCh = destGuild.channels.cache.get(currentChannelId);
+    if (currentCh) await currentCh.delete("서버 복제 — 마지막 채널 정리").catch(() => null);
+  } catch {
+    // 무시
+  }
+
+  // 서버 이름·아이콘 업데이트
   try {
     await destGuild.setName(`${sourceGuild.name} (복제본)`, "서버 복제");
     const iconUrl = sourceGuild.iconURL({ extension: "png", size: 512 });
@@ -207,11 +220,9 @@ export async function handleClone(
     logger.warn({ err }, "서버 이름/아이콘 변경 실패");
   }
 
-  await interaction.editReply(
-    `🎉 **복제 완료!**\n` +
-      `• 원본: **${sourceGuild.name}**\n` +
-      `• 역할: **${roleCount}개**\n` +
-      `• 채널: **${channelMap.size}개**`,
+  logger.info(
+    { source: sourceGuild.name, dest: destGuild.name, roleCount, channelCount: channelMap.size },
+    "복제 완료",
   );
 }
 
