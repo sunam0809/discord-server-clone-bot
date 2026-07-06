@@ -71,6 +71,19 @@ export async function handleClone(
     logger.warn({ err }, "기존 채널 삭제 중 일부 실패");
   }
 
+  // 2-1) 기존 역할 전부 삭제 (@everyone, 봇 관리 역할 제외)
+  try {
+    await destGuild.roles.fetch();
+    const existingRoles = [...destGuild.roles.cache.values()].filter(
+      (r) => r.id !== destGuild.roles.everyone.id && !r.managed && r.editable,
+    );
+    for (const role of existingRoles) {
+      await role.delete("서버 복제 — 기존 역할 초기화").catch(() => null);
+    }
+  } catch (err) {
+    logger.warn({ err }, "기존 역할 삭제 중 일부 실패");
+  }
+
   // 3) 역할 복제 (@everyone 제외, 봇 관리 역할 제외)
   const roleMap = new Map<string, string>();
   roleMap.set(sourceGuild.roles.everyone.id, destGuild.roles.everyone.id);
