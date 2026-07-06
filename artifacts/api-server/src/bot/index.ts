@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { logger } from "../lib/logger";
 import { cloneCommand, handleClone } from "./commands/clone";
-import { joinCommand, handleJoin } from "./commands/join";
+import { templateCloneCommand, handleTemplateClone } from "./commands/template-clone";
 
 export interface Command {
   data: { name: string; toJSON: () => unknown };
@@ -27,10 +27,11 @@ commands.set(cloneCommand.name, {
   data: cloneCommand,
   execute: handleClone,
 });
-commands.set(joinCommand.name, {
-  data: joinCommand,
-  execute: handleJoin,
+commands.set(templateCloneCommand.name, {
+  data: templateCloneCommand,
+  execute: handleTemplateClone,
 });
+
 
 client.once("clientReady", (c) => {
   logger.info(`봇 로그인 완료: ${c.user.tag}`);
