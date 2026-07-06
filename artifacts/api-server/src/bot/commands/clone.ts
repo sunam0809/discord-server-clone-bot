@@ -42,7 +42,11 @@ export async function handleClone(
     });
   }
   if (!destGuild) {
-    await interaction.editReply("❌ 이 서버 정보를 가져올 수 없어요. 봇이 서버에 제대로 초대됐는지 확인해주세요.");
+    await interaction.editReply(
+      "❌ 봇이 이 서버의 멤버가 아니에요.\n" +
+      "초대 링크에 **`bot`** 스코프가 포함돼야 해요.\n" +
+      "OAuth2 → URL Generator → `bot` + `applications.commands` 둘 다 체크 후 다시 초대해주세요."
+    );
     return;
   }
 
