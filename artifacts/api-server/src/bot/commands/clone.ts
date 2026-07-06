@@ -16,6 +16,7 @@ import { logger } from "../../lib/logger";
 export const cloneCommand = new SlashCommandBuilder()
   .setName("복제하기")
   .setDescription("다른 서버를 이 서버에 복제합니다 (역할·채널·권한 전부)")
+  .setDMPermission(false)
   .addStringOption((opt) =>
     opt
       .setName("서버id")
@@ -32,9 +33,12 @@ export async function handleClone(
   const client = interaction.client;
 
   // 대상 서버 = 커맨드를 실행한 현재 서버
-  const destGuild = interaction.guild;
+  let destGuild = interaction.guild;
+  if (!destGuild && interaction.guildId) {
+    destGuild = await client.guilds.fetch(interaction.guildId).catch(() => null);
+  }
   if (!destGuild) {
-    await interaction.editReply("❌ 서버 내에서만 사용할 수 있어요.");
+    await interaction.editReply("❌ 서버 정보를 불러올 수 없어요. 봇에게 서버 관리 권한이 있는지 확인해주세요.");
     return;
   }
 
