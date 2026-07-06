@@ -1,7 +1,6 @@
 import {
   Client,
   GatewayIntentBits,
-  Partials,
   Collection,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -16,10 +15,7 @@ export interface Command {
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
   ],
-  partials: [Partials.Channel],
 });
 
 const commands = new Collection<string, Command>();
@@ -28,7 +24,7 @@ commands.set(cloneCommand.name, {
   execute: handleClone,
 });
 
-client.once("ready", (c) => {
+client.once("clientReady", (c) => {
   logger.info(`봇 로그인 완료: ${c.user.tag}`);
 });
 
@@ -42,7 +38,7 @@ client.on("interactionCreate", async (interaction) => {
     await command.execute(interaction);
   } catch (err) {
     logger.error({ err }, "커맨드 실행 오류");
-    const msg = { content: "❌ 오류가 발생했습니다.", ephemeral: true };
+    const msg = { content: "❌ 오류가 발생했습니다.", ephemeral: true } as const;
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(msg);
     } else {
