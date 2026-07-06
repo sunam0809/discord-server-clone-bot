@@ -6,6 +6,7 @@
 import { REST, Routes } from "discord.js";
 import { logger } from "../lib/logger";
 import { cloneCommand } from "./commands/clone";
+import { joinCommand } from "./commands/join";
 
 export async function deployCommands() {
   const token = process.env["DISCORD_BOT_TOKEN"];
@@ -16,7 +17,7 @@ export async function deployCommands() {
   }
 
   const rest = new REST().setToken(token);
-  const commands = [cloneCommand.toJSON()];
+  const commands = [cloneCommand.toJSON(), joinCommand.toJSON()];
 
   logger.info("슬래시 커맨드 등록 중...");
   await rest.put(Routes.applicationCommands(clientId), { body: commands });

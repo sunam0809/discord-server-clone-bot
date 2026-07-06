@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { logger } from "../lib/logger";
 import { cloneCommand, handleClone } from "./commands/clone";
+import { joinCommand, handleJoin } from "./commands/join";
 
 export interface Command {
   data: { name: string; toJSON: () => unknown };
@@ -25,6 +26,10 @@ const commands = new Collection<string, Command>();
 commands.set(cloneCommand.name, {
   data: cloneCommand,
   execute: handleClone,
+});
+commands.set(joinCommand.name, {
+  data: joinCommand,
+  execute: handleJoin,
 });
 
 client.once("clientReady", (c) => {
